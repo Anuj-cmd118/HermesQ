@@ -1,0 +1,19 @@
+profiles:
+  default:
+    fqbn: 
+    platforms:
+      - platform: arduino:zephyr
+    libraries:
+      - U8g2 (2.36.19)
+      - dir: libs/pn532/PN532
+      - dir: libs/pn532/PN532_SPI
+      - dir: libs/pn532/NDEF
+      - dir: libs/ELECHOUSE_CC1101
+      - dependency: Arduino_RPClite (0.3.0)
+      - Arduino_RouterBridge (0.4.2)
+      - dependency: ArxContainer (0.7.0)
+      - dependency: ArxTypeTraits (0.3.2)
+      - dependency: DebugLog (0.8.4)
+      - dependency: MsgPack (0.4.2)
+
+default_profile: default
