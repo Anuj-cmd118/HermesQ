@@ -1,0 +1,18 @@
+# HermesQ Python backend — App Lab installs these on deploy.
+# arduino.app_utils is provided by the App Lab runtime (do NOT add it here).
+#
+# BLE HID support has been removed (it required dbus-python / PyGObject,
+# which pull in pycairo — a package that needs a C compiler not present
+# in the App Lab build environment). HID actions are now executed via a
+# dependency-free simulated keyboard (see hid_sim.py).
+#
+# Voice commands (ESP32-S3 audio co-processor) are handled by a SEPARATE
+# script — host_daemon/audio_bridge.py — that runs directly on the UNO Q's
+# Debian host, not inside this App Lab container. That's a hard platform
+# requirement: App Lab's Python container has no access to the host's
+# /dev/tty* USB-serial nodes (confirmed on the Arduino forum — see the
+# "Why voice isn't handled in-process" note at the top of main.py), so
+# pyserial can never reach the S3 from in here no matter what's listed in
+# this file. Its dependencies (pyserial, optionally vosk) go in
+# host_daemon/requirements.txt instead, installed with the host's own pip,
+# not App Lab's. This file intentionally does NOT list them.

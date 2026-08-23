@@ -1,0 +1,9 @@
+profiles:
+  default:
+    fqbn: esp32:esp32:esp32s3
+    platforms:
+      - platform: esp32:esp32 (3.0.0)
+    libraries:
+      - Adafruit NeoPixel (1.12.3)
+
+default_profile: default

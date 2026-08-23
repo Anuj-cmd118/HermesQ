@@ -1,0 +1,30 @@
+{
+  "dev_environment": [
+    {"type": "open_url", "url": "https://github.com"},
+    {"type": "delay_ms", "ms": 800},
+    {"type": "open_url", "url": "https://docs.python.org/3/"},
+    {"type": "delay_ms", "ms": 800},
+    {"type": "key_combo", "keys": ["SUPER"]},
+    {"type": "delay_ms", "ms": 300},
+    {"type": "type_text", "text": "code"},
+    {"type": "key", "key": "ENTER"}
+  ],
+  "presentation_mode": [
+    {"type": "key_combo", "keys": ["SUPER", "D"]},
+    {"type": "delay_ms", "ms": 500},
+    {"type": "open_url", "url": "https://docs.google.com/presentation"},
+    {"type": "delay_ms", "ms": 1000},
+    {"type": "key", "key": "F5"}
+  ],
+  "open_tabs": [
+    {"type": "open_url", "url": "https://github.com"},
+    {"type": "delay_ms", "ms": 600},
+    {"type": "key_combo", "keys": ["CTRL", "T"]},
+    {"type": "delay_ms", "ms": 400},
+    {"type": "open_url", "url": "https://stackoverflow.com"},
+    {"type": "delay_ms", "ms": 600},
+    {"type": "key_combo", "keys": ["CTRL", "T"]},
+    {"type": "delay_ms", "ms": 400},
+    {"type": "open_url", "url": "https://youtube.com"}
+  ]
+}

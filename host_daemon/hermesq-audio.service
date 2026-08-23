@@ -1,0 +1,17 @@
+[Unit]
+Description=HermesQ voice bridge (ESP32-S3 audio co-processor)
+After=network-online.target
+
+[Service]
+Type=simple
+User=arduino
+WorkingDirectory=/home/arduino/hermesq/host_daemon
+Environment=HERMESQ_AUDIO_UART=/dev/ttyUSB0
+Environment=HERMESQ_APP_URL=http://localhost:7000
+Environment=HERMESQ_VOSK_MODEL=/home/arduino/vosk-model-small-en-us-0.15
+ExecStart=/usr/bin/python3 /home/arduino/hermesq/host_daemon/audio_bridge.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

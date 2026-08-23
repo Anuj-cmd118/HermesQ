@@ -1,0 +1,7 @@
+name: hermesq(real)
+description: HermesQ multitool — UI shell with integrated NFC engine
+ports: []
+bricks:
+- arduino:dbstorage_sqlstore: {}
+- arduino:web_ui: {}
+icon: 👹

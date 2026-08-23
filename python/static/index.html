@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HermesQ</title>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<style>
+:root {
+  --bg:      #0b0b0e;
+  --surface: #13131a;
+  --card:    #1a1a24;
+  --border:  #252530;
+  --accent:  #7c3aed;
+  --accent2: #a855f7;
+  --green:   #22c55e;
+  --red:     #ef4444;
+  --yellow:  #f59e0b;
+  --blue:    #3b82f6;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --dim:     #94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','Fira Code',monospace;font-size:13px;height:100vh;overflow:hidden}
+
+/* shell */
+.shell{display:grid;grid-template-rows:46px 1fr;grid-template-columns:190px 1fr;height:100vh}
+
+/* topbar */
+.topbar{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px}
+.logo{font-size:14px;font-weight:700;letter-spacing:.06em;color:var(--accent2)}
+.logo em{color:var(--muted);font-style:normal;font-weight:400}
+.pill{padding:2px 7px;border-radius:999px;font-size:10px;border:1px solid var(--border);color:var(--muted)}
+.pill.ok{border-color:var(--green);color:var(--green)}
+.pill.warn{border-color:var(--yellow);color:var(--yellow)}
+.pill.err{border-color:var(--red);color:var(--red)}
+.spacer{flex:1}
+.topbar .clock{color:var(--muted);font-size:11px}
+
+/* sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:10px 0;display:flex;flex-direction:column;gap:0}
+.nav-group{padding:5px 12px 2px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;color:var(--muted);font-size:12px;border-left:2px solid transparent;transition:all .1s}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{color:var(--accent2);border-left-color:var(--accent2);background:rgba(124,58,237,.07)}
+.nav-item .ic{width:16px;text-align:center;font-size:13px}
+
+/* main */
+.main{overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+
+/* views */
+.view{display:none;flex-direction:column;gap:14px}
+.view.active{display:flex}
+
+/* section title */
+.stitle{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;gap:8px}
+.stitle .cnt{background:var(--accent);color:#fff;border-radius:999px;font-size:9px;padding:1px 5px}
+
+/* card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+
+/* grid */
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.stat .lbl{font-size:10px;color:var(--muted);margin-bottom:3px}
+.stat .val{font-size:20px;font-weight:700;color:var(--accent2)}
+.stat .sub{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:5px 8px;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-weight:500}
+td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+
+/* log */
+.log{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;max-height:200px;overflow-y:auto;line-height:1.65;display:flex;flex-direction:column-reverse}
+.log-inner{display:flex;flex-direction:column}
+.le{display:flex;gap:8px;padding:1px 0}
+.le .t{color:var(--muted);flex-shrink:0;font-size:10px;min-width:64px}
+.le.ok  .m{color:var(--green)}
+.le.err .m{color:var(--red)}
+.le.inf .m{color:var(--accent2)}
+.le.txt .m{color:var(--dim)}
+
+/* input row */
+.row{display:flex;gap:8px;align-items:center}
+input[type=text]{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 10px;outline:none;transition:border-color .12s}
+input[type=text]:focus{border-color:var(--accent)}
+input[type=text]::placeholder{color:var(--muted)}
+.btn{padding:7px 12px;border-radius:5px;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .12s;white-space:nowrap}
+.btn:hover{opacity:.82}
+.btn-p{background:var(--accent);color:#fff}
+.btn-g{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn-d{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.btn-y{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid rgba(245,158,11,.25)}
+
+/* NFC card rows */
+.nfc-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);margin-bottom:5px;cursor:pointer;transition:border-color .1s}
+.nfc-item:hover{border-color:var(--accent)}
+.nfc-item.selected{border-color:var(--accent2)}
+.nfc-item .fav{color:var(--yellow);font-size:12px;flex-shrink:0}
+.nfc-item .name{flex:1;font-weight:600;font-size:12px}
+.nfc-item .uid{color:var(--muted);font-size:10px}
+.nfc-item .tag{background:rgba(124,58,237,.15);color:var(--accent2);border-radius:3px;font-size:9px;padding:1px 5px;flex-shrink:0}
+
+/* note rows */
+.note-item{padding:9px 11px;border:1px solid var(--border);border-radius:5px;background:var(--surface);margin-bottom:5px;cursor:pointer;transition:border-color .1s}
+.note-item:hover{border-color:var(--accent)}
+.note-item .ntitle{font-weight:600;margin-bottom:2px}
+.note-item .nbody{color:var(--muted);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* note open panel */
+.note-open{display:none}
+.note-open.show{display:block}
+.note-body-area{white-space:pre-wrap;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px;font-size:12px;line-height:1.7;max-height:190px;overflow-y:auto;margin-top:8px}
+
+/* IR chips */
+.chip{display:inline-block;padding:4px 9px;border-radius:4px;border:1px solid var(--border);margin:3px;cursor:pointer;font-size:11px;transition:all .1s}
+.chip:hover,.chip.active{border-color:var(--accent2);color:var(--accent2)}
+.chip.fired{border-color:var(--green);color:var(--green)}
+
+/* empty */
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:11px}
+
+/* detail kv */
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 0;font-size:12px}
+.kv .k{color:var(--muted);padding:3px 0}
+.kv .v{padding:3px 0;word-break:break-all}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.tab-bar{display:flex;gap:6px;margin-bottom:2px}
+.tab{padding:5px 10px;border-radius:5px;border:1px solid var(--border);font-size:11px;cursor:pointer;color:var(--muted);background:transparent;font-family:inherit;transition:all .1s}
+.tab:hover{color:var(--text)}
+.tab.active{border-color:var(--accent2);color:var(--accent2);background:rgba(124,58,237,.07)}
+
+.trunc{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mono{font-family:inherit}
+.badge-ok{color:var(--green)}
+.badge-err{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── Topbar ── -->
+<header class="topbar">
+  <div class="logo">HermesQ <em>// dashboard</em></div>
+  <div class="pill" id="pill-conn">connecting…</div>
+  <div class="pill" id="pill-hid">HID</div>
+  <div class="spacer"></div>
+  <div class="clock" id="clock"></div>
+</header>
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="nav-group">System</div>
+  <div class="nav-item active" data-v="overview" onclick="nav(this)"><span class="ic">⬡</span>Overview</div>
+  <div class="nav-item"        data-v="agent"    onclick="nav(this)"><span class="ic">◈</span>AI Agent</div>
+  <div class="nav-group">Tools</div>
+  <div class="nav-item"        data-v="nfc"      onclick="nav(this)"><span class="ic">◉</span>NFC</div>
+  <div class="nav-item"        data-v="notes"    onclick="nav(this)"><span class="ic">◧</span>Notes</div>
+  <div class="nav-item"        data-v="ir"       onclick="nav(this)"><span class="ic">◌</span>IR Remote</div>
+  <div class="nav-item"        data-v="rf"       onclick="nav(this)"><span class="ic">◎</span>Sub-GHz</div>
+  <div class="nav-group">History</div>
+  <div class="nav-item"        data-v="log"      onclick="nav(this)"><span class="ic">≡</span>Action Log</div>
+</nav>
+
+<!-- ── Main ── -->
+<main class="main">
+
+  <!-- Overview -->
+  <div class="view active" id="view-overview">
+    <div class="stitle">System Status</div>
+    <div class="grid2">
+      <div class="stat"><div class="lbl">NFC Cards</div><div class="val" id="st-nfc">—</div><div class="sub">saved in DB</div></div>
+      <div class="stat"><div class="lbl">Notes</div><div class="val" id="st-notes">—</div><div class="sub">stored</div></div>
+      <div class="stat"><div class="lbl">IR Remotes</div><div class="val" id="st-ir">—</div><div class="sub">learned</div></div>
+      <div class="stat"><div class="lbl">Agent Runs</div><div class="val" id="st-agent">—</div><div class="sub">total commands</div></div>
+    </div>
+    <div class="stitle">Recent Activity</div>
+    <div class="card"><div class="log" id="ov-log"><div class="log-inner" id="ov-log-inner"><div class="empty">No activity yet</div></div></div></div>
+  </div>
+
+  <!-- Agent -->
+  <div class="view" id="view-agent">
+    <div class="stitle">AI Agent <span class="cnt">sim HID</span></div>
+    <div class="card">
+      <div style="color:var(--muted);font-size:11px;line-height:1.7;margin-bottom:10px">
+        Natural language → HID actions. No real Bluetooth — keystrokes are logged to console.
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <input id="agent-in" type="text" placeholder="e.g. open github, type hello world, launch dev environment…"
+               onkeydown="if(event.key==='Enter')agentRun()">
+        <button class="btn btn-p" onclick="agentRun()">Run</button>
+        <button class="btn btn-g" onclick="agentPlan()">Plan</button>
+      </div>
+      <div class="log" id="ag-log"><div class="log-inner" id="ag-log-inner"><div class="empty">No commands yet</div></div></div>
+    </div>
+    <div class="stitle">Quick Workflows</div>
+    <div class="grid2">
+      <div class="card" style="cursor:pointer" onclick="agentWorkflow('dev_environment')">
+        <div style="font-weight:600;margin-bottom:3px">Dev Environment</div>
+        <div style="color:var(--muted);font-size:10px">Open GitHub + docs + VS Code</div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="agentWorkflow('presentation_mode')">
+        <div style="font-weight:600;margin-bottom:3px">Presentation Mode</div>
+        <div style="color:var(--muted);font-size:10px">Desktop → Google Slides → F5</div>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="agentWorkflow('open_tabs')">
+        <div style="font-weight:600;margin-bottom:3px">Open Tabs</div>
+        <div style="color:var(--muted);font-size:10px">GitHub, StackOverflow, YouTube</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NFC -->
+  <div class="view" id="view-nfc">
+    <div class="stitle">NFC Cards <span class="cnt" id="nfc-cnt">0</span></div>
+    <div class="tab-bar">
+      <button class="tab active" id="tab-nfc-all"  onclick="nfcTab('all',this)">All</button>
+      <button class="tab"        id="tab-nfc-favs" onclick="nfcTab('favs',this)">★ Favourites</button>
+      <button class="btn btn-g"  style="margin-left:auto;font-size:11px" onclick="nfcRefresh()">↺ Refresh</button>
+    </div>
+    <div class="card"><div id="nfc-list"><div class="empty">Loading…</div></div></div>
+    <div class="card" id="nfc-detail" style="display:none">
+      <div class="stitle" style="margin-bottom:10px">Card Detail</div>
+      <div class="kv" id="nfc-kv"></div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="view" id="view-notes">
+    <div class="stitle">Notes</div>
+    <div class="card">
+      <div class="row" style="margin-bottom:6px">
+        <input id="note-title" type="text" placeholder="Title" style="max-width:160px">
+        <input id="note-body"  type="text" placeholder="Content…">
+        <button class="btn btn-p" onclick="noteNew()">+ Add</button>
+      </div>
+      <div class="row">
+        <input id="note-q" type="text" placeholder="Search…" oninput="noteSearch(this.value)">
+      </div>
+    </div>
+    <div class="card"><div id="notes-list"><div class="empty">Loading…</div></div></div>
+    <div class="card note-open" id="note-open">
+      <div class="row" style="margin-bottom:6px">
+        <b id="note-open-title" style="flex:1"></b>
+        <button class="btn btn-d" onclick="noteDelete()">Delete</button>
+        <button class="btn btn-g" onclick="noteClose()">✕</button>
+      </div>
+      <div class="note-body-area" id="note-open-body"></div>
+    </div>
+  </div>
+
+  <!-- IR -->
+  <div class="view" id="view-ir">
+    <div class="stitle">IR Remotes</div>
+    <div class="card">
+      <div style="color:var(--muted);font-size:11px;margin-bottom:10px">Learn remotes via the OLED. Select one below to replay buttons.</div>
+      <div id="ir-remotes"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card" id="ir-btns-card" style="display:none">
+      <div class="stitle" id="ir-btns-title" style="margin-bottom:8px">Buttons</div>
+      <div id="ir-btns"></div>
+    </div>
+  </div>
+
+  <!-- Sub-GHz -->
+  <div class="view" id="view-rf">
+    <div class="stitle">Sub-GHz RF</div>
+    <div class="grid2">
+      <div class="stat"><div class="lbl">Mode</div><div class="val" style="font-size:16px" id="rf-mode">RX</div><div class="sub" id="rf-freq">433.92 MHz</div></div>
+      <div class="stat"><div class="lbl">Packets RX</div><div class="val" id="rf-rx">0</div><div class="sub">this session</div></div>
+      <div class="stat"><div class="lbl">Last RSSI</div><div class="val" id="rf-rssi" style="font-size:16px">—</div><div class="sub">dBm</div></div>
+    </div>
+    <div class="stitle">
+      Packet Log
+      <button class="btn btn-g" style="font-size:10px;margin-left:auto" onclick="rfClear()">Clear</button>
+    </div>
+    <div class="card"><div class="log" id="rf-log"><div class="log-inner" id="rf-log-inner"><div class="empty">No packets yet — use OLED to start monitoring</div></div></div></div>
+  </div>
+
+  <!-- Action Log -->
+  <div class="view" id="view-log">
+    <div class="stitle">Action Log</div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Time</th><th>Mode</th><th>Command</th><th>Intent</th><th>Result</th><th>✓</th></tr></thead>
+        <tbody id="log-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ── Socket ──────────────────────────────────────────────────
+const socket = io({transports:['websocket','polling']});
+const pillConn = document.getElementById('pill-conn');
+const pillHid  = document.getElementById('pill-hid');
+socket.on('connect',    ()=>setPill(pillConn,'connected','ok'));
+socket.on('disconnect', ()=>setPill(pillConn,'offline','err'));
+function setPill(el,txt,cls){el.textContent=txt;el.className='pill '+(cls||'')}
+
+// ── Clock ───────────────────────────────────────────────────
+const clockEl=document.getElementById('clock');
+(function tick(){clockEl.textContent=new Date().toLocaleTimeString();setTimeout(tick,1000)})();
+
+// ── Nav ─────────────────────────────────────────────────────
+let curView='overview';
+function nav(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  el.classList.add('active');
+  curView=el.dataset.v;
+  document.getElementById('view-'+curView).classList.add('active');
+  ({overview:loadOverview,agent:()=>{},nfc:nfcRefresh,notes:notesLoad,ir:irLoad,rf:rfLoad,log:logLoad})[curView]?.();
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function now(){return new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+
+function logAppend(innerId,level,msg){
+  const inner=document.getElementById(innerId);
+  const empty=inner.querySelector('.empty');
+  if(empty)empty.remove();
+  const d=document.createElement('div');
+  d.className='le '+level;
+  d.innerHTML=`<span class="t">${now()}</span><span class="m">${esc(msg)}</span>`;
+  inner.prepend(d);
+  while(inner.children.length>200)inner.removeChild(inner.lastChild);
+}
+
+async function apiFetch(url,opts){
+  try{return await fetch(url,opts).then(r=>r.json())}
+  catch(e){return{error:e.message}}
+}
+
+// ── Overview ────────────────────────────────────────────────
+async function loadOverview(){
+  // HID status
+  try{
+    const s=await apiFetch('/status');
+    if(s.hid){setPill(pillHid,s.hid,s.sim?'warn':'ok')}
+  }catch{}
+  // Action history
+  try{
+    const h=await apiFetch('/history');
+    const rows=h.actions||[];
+    document.getElementById('st-agent').textContent=rows.length;
+    const inner=document.getElementById('ov-log-inner');
+    inner.innerHTML=rows.length?'':'<div class="empty">No activity yet</div>';
+    rows.slice(0,40).forEach(r=>{
+      const d=document.createElement('div');
+      d.className='le '+(r.ok?'ok':'err');
+      d.innerHTML=`<span class="t">${esc((r.ts||'').split('T')[1]?.split('.')[0]||'')}</span><span class="m">[${esc(r.mode||'')}] ${esc(r.command||'')} → ${esc(r.result||'')}</span>`;
+      inner.appendChild(d);
+    });
+  }catch{}
+  // NFC count
+  try{const r=await apiFetch('/api/nfc/list');document.getElementById('st-nfc').textContent=(r.cards||[]).length}catch{document.getElementById('st-nfc').textContent='?'}
+  // Notes count
+  try{const r=await apiFetch('/api/notes/list');document.getElementById('st-notes').textContent=(r.notes||[]).length}catch{document.getElementById('st-notes').textContent='?'}
+  // IR count
+  try{const r=await apiFetch('/api/ir/remotes');document.getElementById('st-ir').textContent=(r.remotes||[]).length}catch{document.getElementById('st-ir').textContent='?'}
+}
+loadOverview();
+
+// ── Agent ────────────────────────────────────────────────────
+function agentRun(){
+  const cmd=document.getElementById('agent-in').value.trim();
+  if(!cmd)return;
+  logAppend('ag-log-inner','inf','→ '+cmd);
+  socket.emit('run_command',{mode:'agent',command:cmd},resp=>{
+    logAppend('ag-log-inner',resp.ok?'ok':'err',resp.message||JSON.stringify(resp));
+  });
+  document.getElementById('agent-in').value='';
+}
+function agentPlan(){
+  const cmd=document.getElementById('agent-in').value.trim();
+  if(!cmd)return;
+  logAppend('ag-log-inner','inf','plan: '+cmd);
+  socket.emit('run_command',{mode:'plan',command:cmd},resp=>{
+    logAppend('ag-log-inner','txt',JSON.stringify(resp));
+  });
+}
+function agentWorkflow(name){
+  document.getElementById('agent-in').value='run workflow '+name;
+  agentRun();
+}
+document.getElementById('agent-in').addEventListener('keydown',e=>{if(e.key==='Enter')agentRun()});
+
+// ── NFC ──────────────────────────────────────────────────────
+let nfcMode='all', selCardId=null;
+function nfcTab(mode,btn){
+  nfcMode=mode;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  nfcRefresh();
+}
+async function nfcRefresh(){
+  document.getElementById('nfc-detail').style.display='none';
+  const el=document.getElementById('nfc-list');
+  el.innerHTML='<div class="empty">Loading…</div>';
+  const url=nfcMode==='favs'?'/api/nfc/favourites':'/api/nfc/list';
+  const r=await apiFetch(url);
+  const cards=r.cards||[];
+  document.getElementById('nfc-cnt').textContent=cards.length;
+  if(!cards.length){el.innerHTML='<div class="empty">No cards yet — scan one via the OLED</div>';return}
+  el.innerHTML='';
+  cards.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='nfc-item'+(selCardId===c.id?' selected':'');
+    d.innerHTML=`<span class="fav">${c.favorite?'★':'☆'}</span>
+      <span class="name">${esc(c.name||c.uid)}</span>
+      <span class="tag">${esc(c.ndef_type||'NO NDEF')}</span>
+      <span class="uid">${esc(c.uid)}</span>`;
+    d.onclick=()=>nfcDetail(c.id,d);
+    el.appendChild(d);
+  });
+}
+async function nfcDetail(id,row){
+  selCardId=id;
+  document.querySelectorAll('.nfc-item').forEach(r=>r.classList.remove('selected'));
+  if(row)row.classList.add('selected');
+  const det=document.getElementById('nfc-detail');
+  det.style.display='block';
+  document.getElementById('nfc-kv').innerHTML='<div class="empty">Loading…</div>';
+  const r=await apiFetch(`/api/nfc/card/${id}`);
+  const c=r.card||{};
+  const pairs=[['Name',c.name],['UID',c.uid],['Type',c.type],['UID Length',(c.uid_length??'')+(c.uid_length?' bytes':'')],['ATQA',c.atqa],['SAK',c.sak],['NDEF Type',c.ndef_type||'NONE'],['NDEF Content',c.ndef_content||'—'],['Favourite',c.favorite?'★ Yes':'No'],['Saved',c.created_at]];
+  document.getElementById('nfc-kv').innerHTML=pairs.map(([k,v])=>`<div class="k">${k}</div><div class="v">${esc(v??'—')}</div>`).join('');
+}
+
+// ── Notes ────────────────────────────────────────────────────
+let openNoteId=null;
+async function notesLoad(q){
+  const el=document.getElementById('notes-list');
+  el.innerHTML='<div class="empty">Loading…</div>';
+  const url=q?`/api/notes/search?q=${encodeURIComponent(q)}`:'/api/notes/list';
+  const r=await apiFetch(url);
+  const notes=r.notes||[];
+  if(!notes.length){el.innerHTML='<div class="empty">No notes yet</div>';return}
+  el.innerHTML='';
+  notes.forEach(n=>{
+    const d=document.createElement('div');
+    d.className='note-item';
+    d.innerHTML=`<div class="ntitle">${esc(n.title||'(untitled)')}</div><div class="nbody">${esc((n.body||'').substring(0,90))}</div>`;
+    d.onclick=()=>noteOpen(n);
+    el.appendChild(d);
+  });
+}
+let noteSearchTimer;
+function noteSearch(q){clearTimeout(noteSearchTimer);noteSearchTimer=setTimeout(()=>notesLoad(q||undefined),280)}
+function noteOpen(n){
+  openNoteId=n.id;
+  document.getElementById('note-open-title').textContent=n.title||'(untitled)';
+  document.getElementById('note-open-body').textContent=n.body||'';
+  document.getElementById('note-open').classList.add('show');
+}
+function noteClose(){document.getElementById('note-open').classList.remove('show');openNoteId=null}
+async function noteNew(){
+  const title=document.getElementById('note-title').value.trim();
+  const body=document.getElementById('note-body').value.trim();
+  if(!title){alert('Title required');return}
+  const r=await apiFetch('/api/notes/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,body})});
+  if(r.ok){document.getElementById('note-title').value='';document.getElementById('note-body').value='';notesLoad()}
+  else alert('Error: '+(r.error||'unknown'));
+}
+async function noteDelete(){
+  if(!openNoteId||!confirm('Delete?'))return;
+  await apiFetch(`/api/notes/delete/${openNoteId}`,{method:'DELETE'});
+  noteClose();notesLoad();
+}
+
+// ── IR ───────────────────────────────────────────────────────
+let irRemote=null;
+async function irLoad(){
+  const el=document.getElementById('ir-remotes');
+  el.innerHTML='<div class="empty">Loading…</div>';
+  const r=await apiFetch('/api/ir/remotes');
+  const remotes=r.remotes||[];
+  if(!remotes.length){el.innerHTML='<div class="empty">No remotes learned yet — use OLED → Infrared → Learn</div>';return}
+  el.innerHTML='';
+  remotes.forEach(name=>{
+    const c=document.createElement('div');
+    c.className='chip'+(name===irRemote?' active':'');
+    c.textContent=name;c.onclick=()=>irSelect(name,c);
+    el.appendChild(c);
+  });
+}
+async function irSelect(name,el){
+  irRemote=name;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  const card=document.getElementById('ir-btns-card');
+  document.getElementById('ir-btns-title').textContent='Buttons — '+name;
+  card.style.display='block';
+  const bel=document.getElementById('ir-btns');
+  bel.innerHTML='<div class="empty">Loading…</div>';
+  const r=await apiFetch(`/api/ir/buttons?remote=${encodeURIComponent(name)}`);
+  const btns=r.buttons||[];
+  if(!btns.length){bel.innerHTML='<div class="empty">No buttons for this remote</div>';return}
+  bel.innerHTML='';
+  btns.forEach(b=>{
+    const c=document.createElement('div');
+    c.className='chip';c.textContent=b;
+    c.onclick=async()=>{
+      c.style.borderColor='var(--yellow)';
+      const rv=await apiFetch('/api/ir/emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({remote:name,button:b})});
+      c.style.borderColor=rv.ok?'var(--green)':'var(--red)';
+      setTimeout(()=>c.style.borderColor='',1200);
+    };
+    bel.appendChild(c);
+  });
+}
+
+// ── RF ───────────────────────────────────────────────────────
+let rfRx=0;
+async function rfLoad(){
+  const r=await apiFetch('/api/rf/log');
+  const pkts=r.packets||[];
+  const inner=document.getElementById('rf-log-inner');
+  inner.innerHTML=pkts.length?'':'<div class="empty">No packets yet — use OLED to start monitoring</div>';
+  pkts.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='le '+(p.crc?'ok':'err');
+    d.innerHTML=`<span class="t">${esc(p.time||'')}</span><span class="m">[${esc(p.freq||'')}MHz] RSSI:${esc(p.rssi||'')} LQI:${esc(p.lqi||'')} ${esc(p.data||'')}</span>`;
+    inner.appendChild(d);
+  });
+  rfRx=pkts.length;
+  document.getElementById('rf-rx').textContent=rfRx;
+  if(pkts.length){document.getElementById('rf-rssi').textContent=pkts[0].rssi??'—'}
+  if(r.mode)document.getElementById('rf-mode').textContent=r.mode;
+  if(r.freq)document.getElementById('rf-freq').textContent=r.freq+' MHz';
+}
+async function rfClear(){
+  await apiFetch('/api/rf/clear',{method:'POST'});
+  document.getElementById('rf-log-inner').innerHTML='<div class="empty">Cleared</div>';
+  rfRx=0;document.getElementById('rf-rx').textContent=0;
+}
+socket.on('rf_packet',p=>{
+  rfRx++;document.getElementById('rf-rx').textContent=rfRx;
+  document.getElementById('rf-rssi').textContent=p.rssi??'—';
+  if(curView==='rf'){
+    const d=document.createElement('div');
+    d.className='le '+(p.crc?'ok':'err');
+    d.innerHTML=`<span class="t">${now()}</span><span class="m">[${esc(p.freq||'')}MHz] RSSI:${esc(p.rssi||'')} ${esc(p.data||'')}</span>`;
+    document.getElementById('rf-log-inner').prepend(d);
+  }
+});
+
+// ── Log ──────────────────────────────────────────────────────
+async function logLoad(){
+  const tbody=document.getElementById('log-body');
+  tbody.innerHTML='<tr><td colspan="6" class="empty">Loading…</td></tr>';
+  const r=await apiFetch('/history');
+  const rows=r.actions||[];
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="6" class="empty">No actions yet</td></tr>';return}
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td class="mono" style="color:var(--muted);white-space:nowrap">${esc((r.ts||'').replace('T',' ').split('.')[0])}</td>
+    <td><span style="background:rgba(124,58,237,.12);color:var(--accent2);border-radius:3px;padding:1px 4px;font-size:10px">${esc(r.mode||'')}</span></td>
+    <td class="trunc">${esc(r.command||'')}</td>
+    <td style="color:var(--muted)">${esc(r.intent||'')}</td>
+    <td class="trunc">${esc(r.result||'')}</td>
+    <td class="${r.ok?'badge-ok':'badge-err'}">${r.ok?'✓':'✗'}</td>
+  </tr>`).join('');
+}
+
+// ── Auto-refresh ─────────────────────────────────────────────
+setInterval(()=>{
+  if(curView==='overview')loadOverview();
+  else if(curView==='log')logLoad();
+  else if(curView==='rf')rfLoad();
+},12000);
+</script>
+</body>
+</html>

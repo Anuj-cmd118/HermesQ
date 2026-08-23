@@ -1,0 +1,10 @@
+# host_daemon/requirements.txt — install with the HOST's own pip, NOT
+# App Lab's requirements handling (this folder is never touched by App Lab).
+#
+#   pip install -r requirements.txt --break-system-packages
+#
+# See audio_bridge.py's module docstring for why this has to run outside
+# the App Lab container.
+
+pyserial>=3.5
+vosk>=0.3.45   # optional — omit if you don't want offline transcription
