@@ -59,6 +59,9 @@ HermesQ spans four cooperating execution contexts:
 
 **Why this split?** The UNO Q's dual-core design keeps deterministic, time-critical radio/NFC/IR/encoder I/O on the STM32 MCU, while storage, BLE HID, AI parsing, and the dashboard run on-device on the companion Linux side. The UNO Q doesn't expose I2S pins, so a second microcontroller (ESP32-S3 Zero) handles audio capture/playback. And because App Lab's own Docker container can't access the host's `/dev/tty*` device nodes, the serial link to the S3 and the speech-to-text step run as an independent daemon directly on the UNO Q's Debian host, talking to the App Lab app over its existing HTTP dashboard port.
 
+<img width="2720" height="1840" alt="hermesq_uno_q_schematic" src="https://github.com/user-attachments/assets/0bcb0935-b072-4c8c-b238-49ad7cf947ae" />
+
+
 ### Voice command flow
 
 1. Hold the push-to-talk button on the ESP32-S3 Zero → streams framed PCM audio over UART.
