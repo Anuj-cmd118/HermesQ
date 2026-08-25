@@ -3,8 +3,7 @@
 ## Why this folder is separate from `python/`
 
 App Lab's `python/main.py` runs inside a **Docker container** on the UNO Q,
-isolated from the host's `/dev/*` device nodes. This is a confirmed,
-current platform limitation — not something wrong in HermesQ's code:
+isolated from the host's `/dev/*` device nodes. 
 
 - Arduino staff, on the forum: *"The Python script of the App runs in a
   Docker container, isolated from the global Linux environment... the
